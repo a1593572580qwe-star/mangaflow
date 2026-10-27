@@ -1,0 +1,45 @@
+name: MangaFlow CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, Lint & Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: 检出仓库代码 (Checkout Repository)
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js 环境 (Setup Node.js ${{ matrix.node-version }})
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: 安装锁文件依赖 (Install Dependencies with Clean Install)
+        run: npm ci
+
+      - name: TypeScript 静态类型检查 (Type Check)
+        run: npm run typecheck
+
+      - name: ESLint 代码规范检查 (Lint)
+        run: npm run lint
+
+      - name: 运行自动化测试套件 (Run Tests)
+        run: npm test
+
+      - name: 执行 Next.js 生产构建 (Production Build)
+        run: npm run build
